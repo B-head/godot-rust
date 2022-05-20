@@ -9,6 +9,8 @@ license = "MIT"
 
 [lib]
 crate-type = ["cdylib"]
+test = false
+doctest = false
 
 [dependencies]
 gdnative = { path = "../../gdnative" }

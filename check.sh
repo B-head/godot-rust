@@ -60,7 +60,7 @@ function findGodot() {
     fi
 }
 
-features="gdnative/async,gdnative/serde"
+features="--features gdnative/async,gdnative/serde"
 cmds=()
 
 for arg in "${args[@]}"; do
@@ -69,22 +69,22 @@ for arg in "${args[@]}"; do
         cmds+=("cargo fmt --all -- --check")
         ;;
     clippy)
-        cmds+=("cargo clippy --workspace --features $features -- -D clippy::style -D clippy::complexity -D clippy::perf -D clippy::dbg_macro -D clippy::todo -D clippy::unimplemented")
+        cmds+=("cargo clippy --workspace $features -- -D clippy::style -D clippy::complexity -D clippy::perf -D clippy::dbg_macro -D clippy::todo -D clippy::unimplemented")
         ;;
     test)
-        cmds+=("cargo test --features $features")
+        cmds+=("cargo test $features")
         ;;
     itest)
         findGodot
-        cmds+=("cargo build --manifest-path test/Cargo.toml --features $features")
+        cmds+=("cargo build --manifest-path test/Cargo.toml $features")
         cmds+=("cp target/debug/gdnative_test* test/project/lib/")
-        cmds+=("$godotBin --path test/project")
+        cmds+=("$godotBin --no-window --verbose --path test/project")
         ;;
     doc)
-        cmds+=("cargo doc --lib -p gdnative --no-deps --features $features")
+        cmds+=("cargo doc --lib -p gdnative --no-deps $features")
         ;;
     dok)
-        cmds+=("cargo doc --lib -p gdnative --no-deps --features $features --open")
+        cmds+=("cargo doc --lib -p gdnative --no-deps $features --open")
         ;;
     *)
         echo "Unrecognized command '$arg'"

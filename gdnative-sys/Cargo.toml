@@ -12,6 +12,10 @@ workspace = ".."
 edition = "2021"
 rust-version = "1.56"
 
+[lib]
+test = false
+doctest = false
+
 [dependencies]
 libc = "0.2"
 

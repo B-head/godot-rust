@@ -12,6 +12,8 @@ rust-version = "1.56"
 
 [lib]
 proc-macro = true
+test = false
+doctest = false
 
 [dependencies]
 syn = { version = "1", features = ["full", "extra-traits", "visit", "visit-mut"] }
