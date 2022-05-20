@@ -21,6 +21,7 @@ on:
   pull_request:
     branches:
       - master
+  workflow_dispatch:
 
 defaults:
   run:
@@ -28,7 +29,7 @@ defaults:
 
 # If a new commit is pushed before the old one's CI has completed (on the same branch), abort previous run
 concurrency:
-  group: ${{ github.head_ref }}
+  group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
