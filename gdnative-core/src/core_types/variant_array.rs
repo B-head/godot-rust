@@ -181,21 +181,6 @@ impl<Own: Ownership> VariantArray<Own> {
         self.into_iter()
     }
 
-    // TODO
-    // pub fn sort_custom(&mut self, obj: ?, s: ?) {
-    //     unimplemented!()
-    // }
-
-    // pub fn bsearch(&mut self, val: (), before: bool) -> i32 {
-    //     unsafe {
-    //         (get_api().godot_array_bsearch)(self.sys_mut(), val, before)
-    //     }
-    // }
-
-    // pub fn bsearch_custom(&mut self, val: ?, obj: ?, s: ?, before: bool) -> i32 {
-    //     unimplemented!();
-    // }
-
     #[doc(hidden)]
     #[inline]
     pub fn sys(&self) -> *const sys::godot_array {
@@ -433,10 +418,11 @@ impl<'a, Own: Ownership> Iterator for Iter<'a, Own> {
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        let n = i32::try_from(n).ok()?;
+        let n32 = i32::try_from(n).ok()?;
 
-        if self.arr.len() > n {
-            Some(self.arr.get(n))
+        if n32 < self.arr.len() {
+            self.range.nth(n);
+            Some(self.arr.get(n32))
         } else {
             None
         }
@@ -485,10 +471,11 @@ impl Iterator for IntoIter {
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        let n = i32::try_from(n).ok()?;
+        let n32 = i32::try_from(n).ok()?;
 
-        if self.arr.len() > n {
-            Some(self.arr.get(n))
+        if n32 < self.arr.len() {
+            self.range.nth(n);
+            Some(self.arr.get(n32))
         } else {
             None
         }
@@ -593,9 +580,17 @@ godot_test!(test_array {
     array3.push(&Variant::new(512));
 
     assert_eq!(
-        &[42, 1337, 512],
         array3.iter().map(|v| v.try_to::<i64>().unwrap()).collect::<Vec<_>>().as_slice(),
+        &[42, 1337, 512],
     );
+
+    let mut iter = array3.iter().skip(2);
+    assert_eq!(iter.next(), Some(Variant::new(512)));
+    assert_eq!(iter.next(), None);
+
+    let mut iter = array3.into_iter().skip(2);
+    assert_eq!(iter.next(), Some(Variant::new(512)));
+    assert_eq!(iter.next(), None);
 
     let array4 = VariantArray::new(); // []
     let array5 = VariantArray::new(); // []
@@ -614,15 +609,15 @@ godot_test!(
     test_array_debug {
         use std::panic::catch_unwind;
 
-        println!("  -- expected 4 'Index 3 out of bounds (len 3)' error messages for edge cases");
-        println!("  -- the test is successful when and only when these errors are shown");
+        println!("  -- expecting four 'Index 3 out of bounds (len 3)' panic messages for edge cases");
+        println!("  -- the test is successful when and only when these four errors are shown");
 
         let arr = VariantArray::new(); // []
         arr.push(&Variant::new("hello world"));
         arr.push(&Variant::new(true));
         arr.push(&Variant::new(42));
 
-        assert_eq!(format!("{:?}", arr), "[GodotString(hello world), Bool(True), I64(42)]");
+        assert_eq!(format!("{arr:?}"), "[GodotString(hello world), Bool(True), I64(42)]");
 
         let set = catch_unwind(|| { arr.set(3, 7i64); });
         let get = catch_unwind(|| { arr.get(3); });
@@ -636,15 +631,16 @@ godot_test!(
     }
 );
 
-// TODO: clear arrays without affecting clones
-//godot_test!(test_array_clone_clear {
-//    let foo = Variant::new("foo");
-//    let mut array = VariantArray::new();
-//
-//    array.push(&foo);
-//    let array_clone = array.clone();
-//    array.clear();
-//
-//    assert!(array.is_empty());
-//    assert!(!array_clone.is_empty());
-//});
+godot_test!(
+    test_array_clone_clear {
+        let foo = Variant::new("foo");
+        let array = VariantArray::new();
+
+        array.push(&foo);
+        let array_clone = array.duplicate();
+        array.clear();
+
+        assert!(array.is_empty());
+        assert!(!array_clone.is_empty());
+    }
+);

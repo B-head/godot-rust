@@ -19,13 +19,16 @@
 //!
 //! [thread-safety]: https://docs.godotengine.org/en/stable/tutorials/threads/thread_safe_apis.html
 
-#![deny(clippy::missing_inline_in_public_items)]
+#![warn(clippy::missing_inline_in_public_items, clippy::exhaustive_enums)]
 #![allow(
     clippy::transmute_ptr_to_ptr,
     clippy::missing_safety_doc,
     clippy::non_send_fields_in_send_ty
 )]
-#![cfg_attr(feature = "gd-test", allow(clippy::blacklisted_name))]
+#![cfg_attr(
+    any(test, feature = "gd-test"),
+    allow(clippy::excessive_precision, clippy::disallowed_names)
+)]
 
 #[doc(hidden)]
 pub extern crate gdnative_sys as sys;
@@ -37,12 +40,20 @@ pub extern crate libc;
 #[macro_use]
 extern crate approx;
 
+#[doc(inline)]
+pub use gdnative_derive::godot_wrap_method;
+
+/// Derive macros and macro attributes.
+#[doc(inline)]
+pub use gdnative_derive as derive;
+
 // Macros have to be processed before they are used.
 mod macros;
 
 pub mod core_types;
 
 pub mod export;
+pub mod globalscope;
 pub mod init;
 pub mod log;
 pub mod object;

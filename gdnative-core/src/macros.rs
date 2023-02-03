@@ -169,13 +169,32 @@ macro_rules! impl_basic_trait_as_sys {
     (
         Eq for $Type:ty as $GdType:ident : $gd_method:ident
     ) => {
-        impl PartialEq for $Type {
+        impl_basic_trait_as_sys!(PartialEq for $Type as $GdType : $gd_method);
+        impl Eq for $Type {}
+    };
+
+    (
+        Ord for $Type:ty as $GdType:ident : $gd_method:ident
+    ) => {
+        impl PartialOrd for $Type {
             #[inline]
-            fn eq(&self, other: &Self) -> bool {
-                unsafe { (get_api().$gd_method)(self.sys(), other.sys()) }
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(other))
             }
         }
-        impl Eq for $Type {}
+        impl Ord for $Type {
+            #[inline]
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                let op_less = get_api().$gd_method;
+                if unsafe { op_less(&self.0, &other.0) } {
+                    std::cmp::Ordering::Less
+                } else if unsafe { op_less(&other.0, &self.0) } {
+                    std::cmp::Ordering::Greater
+                } else {
+                    std::cmp::Ordering::Equal
+                }
+            }
+        }
     };
 
     (
@@ -208,12 +227,15 @@ macro_rules! impl_basic_traits_as_sys {
     )
 }
 
-macro_rules! godot_test {
-    ($($test_name:ident $body:block)*) => {
+#[doc(hidden)]
+#[macro_export]
+macro_rules! godot_test_impl {
+    ( $( $test_name:ident $body:block $($attrs:tt)* )* ) => {
         $(
-            #[cfg(feature = "gd-test")]
+            $($attrs)*
             #[doc(hidden)]
             #[inline]
+            #[must_use]
             pub fn $test_name() -> bool {
                 let str_name = stringify!($test_name);
                 println!("   -- {}", str_name);
@@ -223,11 +245,47 @@ macro_rules! godot_test {
                 ).is_ok();
 
                 if !ok {
-                    $crate::godot_error!("   !! Test {} failed", str_name);
+                    if ::std::panic::catch_unwind(|| {
+                        $crate::godot_error!("   !! Test {} failed", str_name);
+                    }).is_err() {
+                        eprintln!("   !! Test {} failed", str_name);
+                        eprintln!("   !! And failed to call Godot API to log error message");
+                    }
                 }
 
                 ok
             }
+        )*
+    }
+}
+
+/// Declares a test to be run with the Godot engine (i.e. not a pure Rust unit test).
+///
+/// Creates a wrapper function that catches panics, prints errors and returns true/false.
+/// To be manually invoked in higher-level test routine.
+///
+/// This macro is designed to be used within the current crate only, hence the #[cfg] attribute.
+#[doc(hidden)]
+macro_rules! godot_test {
+    ($($test_name:ident $body:block)*) => {
+        $(
+            godot_test_impl!($test_name $body #[cfg(feature = "gd-test")]);
+        )*
+    }
+}
+
+/// Declares a test to be run with the Godot engine (i.e. not a pure Rust unit test).
+///
+/// Creates a wrapper function that catches panics, prints errors and returns true/false.
+/// To be manually invoked in higher-level test routine.
+///
+/// This macro is designed to be used within the `test` crate, hence the method is always declared (not only in certain features).
+#[doc(hidden)]
+#[macro_export]
+macro_rules! godot_itest {
+    ($($test_name:ident $body:block)*) => {
+        $(
+            $crate::godot_test_impl!($test_name $body);
         )*
     }
 }

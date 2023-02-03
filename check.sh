@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Small utility to run tests locally
 # Similar to minimal-ci
 
@@ -46,9 +48,9 @@ function findGodot() {
     # Special case for Windows when there is a .bat file
     # Also consider that 'cmd /c' would need 'cmd //c' (https://stackoverflow.com/q/21357813)
     elif
-        # Don't ask me why Godot returns 255 instead of 0
+        # Godot returns 255 for older versions, but 0 for newer ones
         godot.bat --version
-        [ $? -eq 255 ]
+        [[ $? -eq 255 || $? -eq 0 ]]
     then
         echo "Found 'godot.bat' script"
         godotBin="godot.bat"
@@ -60,7 +62,8 @@ function findGodot() {
     fi
 }
 
-features="--features gdnative/async,gdnative/serde"
+features="gdnative/async,gdnative/serde"
+itest_toggled_features="gdnative/inventory,no-manual-register"
 cmds=()
 
 for arg in "${args[@]}"; do
@@ -69,15 +72,18 @@ for arg in "${args[@]}"; do
         cmds+=("cargo fmt --all -- --check")
         ;;
     clippy)
-        cmds+=("cargo clippy --workspace $features -- -D clippy::style -D clippy::complexity -D clippy::perf -D clippy::dbg_macro -D clippy::todo -D clippy::unimplemented")
+        cmds+=("cargo clippy --workspace --features $features -- -D clippy::style -D clippy::complexity -D clippy::perf -D clippy::dbg_macro -D clippy::todo -D clippy::unimplemented -D warnings")
         ;;
     test)
         cmds+=("cargo test $features")
         ;;
     itest)
         findGodot
-        cmds+=("cargo build --manifest-path test/Cargo.toml $features")
-        cmds+=("cp target/debug/gdnative_test* test/project/lib/")
+        cmds+=("cargo build --manifest-path test/Cargo.toml --features $features")
+        cmds+=("cp target/debug/*gdnative_test* test/project/lib/")
+        cmds+=("$godotBin --no-window --verbose --path test/project")
+        cmds+=("cargo build --manifest-path test/Cargo.toml --features $features,$itest_toggled_features")
+        cmds+=("cp target/debug/*gdnative_test* test/project/lib/")
         cmds+=("$godotBin --no-window --verbose --path test/project")
         ;;
     doc)

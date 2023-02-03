@@ -16,7 +16,9 @@ members = [
     "examples/resource",
     "examples/native-plugin",
     "examples/rpc",
-    "examples/array-export",
+    "examples/builder-export",
+    "examples/property-export",
+    "examples/godot_tps_controller_port",
     "impl/proc-macros"
 ]
 

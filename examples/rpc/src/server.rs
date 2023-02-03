@@ -8,15 +8,18 @@ const OUT_BANDWIDTH: i64 = 1000;
 
 #[derive(NativeClass)]
 #[inherit(Node)]
-pub struct Server;
+pub struct Server {
+    #[property(rpc = "master", set = "Self::set_foo")]
+    foo: i32,
+}
 
 #[methods]
 impl Server {
     fn new(_owner: &Node) -> Self {
-        Self
+        Self { foo: 0 }
     }
 
-    #[godot]
+    #[method]
     fn _ready(&mut self, #[base] owner: &Node) {
         let peer = NetworkedMultiplayerENet::new();
         peer.create_server(PORT, MAX_CLIENTS, IN_BANDWIDTH, OUT_BANDWIDTH)
@@ -28,7 +31,7 @@ impl Server {
         tree.set_network_peer(peer);
     }
 
-    #[godot(rpc = "master")]
+    #[method(rpc = "master")]
     fn greet_server(&mut self, #[base] owner: &Node, msg: GodotString) {
         godot_print!("Client says: {}", msg);
 
@@ -40,5 +43,11 @@ impl Server {
             "return_greeting",
             &[Variant::new("hello")],
         );
+    }
+
+    #[method]
+    fn set_foo(&mut self, #[base] _owner: TRef<Node>, value: i32) {
+        godot_print!("Client sets foo to: {}", value);
+        self.foo = value;
     }
 }

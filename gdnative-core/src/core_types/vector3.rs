@@ -15,12 +15,28 @@ pub struct Vector3 {
     pub z: f32,
 }
 
+#[allow(
+    clippy::unnecessary_cast, // False positives: casts necessary for cross-platform
+    clippy::exhaustive_enums, // explicitly exhaustive since there can't be more axes for Vector3
+)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(u32)]
 pub enum Axis {
     X = sys::godot_vector3_axis_GODOT_VECTOR3_AXIS_X as u32,
     Y = sys::godot_vector3_axis_GODOT_VECTOR3_AXIS_Y as u32,
     Z = sys::godot_vector3_axis_GODOT_VECTOR3_AXIS_Z as u32,
+}
+
+impl Axis {
+    /// Returns this axis as a vector of length 1, with only one component set.
+    #[inline]
+    pub fn to_unit_vector(self) -> Vector3 {
+        match self {
+            Axis::X => Vector3::RIGHT,
+            Axis::Y => Vector3::UP,
+            Axis::Z => Vector3::BACK,
+        }
+    }
 }
 
 /// Helper methods for `Vector3`.
@@ -202,8 +218,9 @@ impl Vector3 {
         Self::gd(self.glam().lerp(b.glam(), t))
     }
 
-    /// Returns the axis of the vector's largest value. See `Axis` enum.
-    /// If all components are equal, this method returns `Axis::X`.
+    /// Returns the axis of the vector's largest value. See [`Axis`] enum.
+    ///
+    /// If multiple components are equal, this method returns in preferred order `Axis::X`, `Axis::Y`, `Axis::Z`.
     #[inline]
     #[allow(clippy::collapsible_else_if)]
     pub fn max_axis(self) -> Axis {
@@ -223,7 +240,8 @@ impl Vector3 {
     }
 
     /// Returns the axis of the vector's smallest value. See `Axis` enum.
-    /// If all components are equal, this method returns `Axis::Z`.
+    ///
+    /// If multiple components are equal, this method returns in preferred order `Axis::X`, `Axis::Y`, `Axis::Z`.
     #[inline]
     #[allow(clippy::collapsible_else_if)]
     pub fn min_axis(self) -> Axis {

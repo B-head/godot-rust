@@ -165,6 +165,7 @@ pub type DefaultUserData<T> = LocalCellData<T>;
 
 /// Error type indicating that an operation can't fail.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[allow(clippy::exhaustive_enums)] // explicitly uninhabited
 pub enum Infallible {}
 
 impl std::fmt::Display for Infallible {
@@ -186,6 +187,7 @@ impl std::fmt::Display for Infallible {
 /// As there is no universal way to deal with such situations, behavior of locking wrappers can
 /// be customized using this enum.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[non_exhaustive]
 pub enum DeadlockPolicy {
     /// Block on all locks. Deadlocks are possible.
     Allow,
@@ -223,6 +225,7 @@ impl LockOptions for DefaultLockPolicy {
 
 /// Error indicating that a lock wasn't obtained.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[non_exhaustive]
 pub enum LockFailed {
     Pessimistic,
     Timeout(Duration),
@@ -232,7 +235,7 @@ impl std::fmt::Display for LockFailed {
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LockFailed::Timeout(wait) => write!(f, "failed to acquire lock within {:?}", wait),
+            LockFailed::Timeout(wait) => write!(f, "failed to acquire lock within {wait:?}"),
             LockFailed::Pessimistic => write!(f, "failed to acquire lock, it was already held"),
         }
     }
@@ -562,6 +565,7 @@ mod local_cell {
 
     /// Error indicating that a borrow has failed.
     #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+    #[non_exhaustive]
     pub enum LocalCellError {
         DifferentThread {
             original: ThreadId,
@@ -576,8 +580,7 @@ mod local_cell {
             match self {
                 LocalCellError::DifferentThread { original, current } => write!(
                     f,
-                    "accessing from the wrong thread, expected {:?} found {:?}",
-                    original, current
+                    "accessing from the wrong thread, expected {original:?} found {current:?}"
                 ),
                 LocalCellError::BorrowFailed => write!(
                     f,
@@ -679,7 +682,7 @@ where
     where
         F: FnOnce(&Self::Target) -> U,
     {
-        self.inner.try_borrow().map(|r| op(&*r))
+        self.inner.try_borrow().map(|r| op(&r))
     }
 }
 
@@ -694,7 +697,7 @@ where
     where
         F: FnOnce(&mut Self::Target) -> U,
     {
-        self.inner.try_borrow_mut().map(|mut w| op(&mut *w))
+        self.inner.try_borrow_mut().map(|mut w| op(&mut w))
     }
 }
 

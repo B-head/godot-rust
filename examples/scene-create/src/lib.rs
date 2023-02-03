@@ -1,6 +1,6 @@
 use gdnative::prelude::*;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ManageErrs {
     CouldNotMakeInstance,
     RootClassNotSpatial(String),
@@ -33,7 +33,7 @@ impl SceneCreate {
         }
     }
 
-    #[gdnative::derive::godot]
+    #[gdnative::derive::method]
     fn _ready(&mut self) {
         self.template = load_scene("res://Child_scene.tscn");
         match &self.template {
@@ -42,7 +42,7 @@ impl SceneCreate {
         }
     }
 
-    #[gdnative::derive::godot]
+    #[gdnative::derive::method]
     fn spawn_one(&mut self, #[base] owner: &Spatial, message: GodotString) {
         godot_print!("Called spawn_one({})", message.to_string());
 
@@ -59,7 +59,7 @@ impl SceneCreate {
             Ok(spatial) => {
                 // Here is how you rename the child...
                 let key_str = format!("child_{}", self.children_spawned);
-                spatial.set_name(&key_str);
+                spatial.set_name(key_str);
 
                 let x = (self.children_spawned % 10) as f32;
                 let z = (self.children_spawned / 10) as f32;
@@ -77,7 +77,7 @@ impl SceneCreate {
         update_panel(owner, num_children);
     }
 
-    #[gdnative::derive::godot]
+    #[gdnative::derive::method]
     fn remove_one(&mut self, #[base] owner: &Spatial, str: GodotString) {
         godot_print!("Called remove_one({})", str);
         let num_children = owner.get_child_count();
@@ -105,11 +105,9 @@ fn init(handle: InitHandle) {
 }
 
 pub fn load_scene(path: &str) -> Option<Ref<PackedScene, ThreadLocal>> {
-    let scene = ResourceLoader::godot_singleton().load(path, "PackedScene", false)?;
-
+    let scene = load::<PackedScene>(path)?;
     let scene = unsafe { scene.assume_thread_local() };
-
-    scene.cast::<PackedScene>()
+    Some(scene)
 }
 
 /// Root here is needs to be the same type (or a parent type) of the node that you put in the child

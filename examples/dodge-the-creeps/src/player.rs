@@ -26,14 +26,14 @@ impl Player {
         }
     }
 
-    #[godot]
+    #[method]
     fn _ready(&mut self, #[base] owner: &Area2D) {
         let viewport = owner.get_viewport_rect();
         self.screen_size = viewport.size;
         owner.hide();
     }
 
-    #[godot]
+    #[method]
     fn _process(&mut self, #[base] owner: &Area2D, delta: f32) {
         let animated_sprite = unsafe {
             owner
@@ -82,13 +82,13 @@ impl Player {
         let change = velocity * delta;
         let position = owner.global_position() + change;
         let position = Vector2::new(
-            position.x.max(0.0).min(self.screen_size.x),
-            position.y.max(0.0).min(self.screen_size.y),
+            position.x.clamp(0.0, self.screen_size.x),
+            position.y.clamp(0.0, self.screen_size.y),
         );
         owner.set_global_position(position);
     }
 
-    #[godot]
+    #[method]
     fn on_player_body_entered(&self, #[base] owner: &Area2D, _body: Ref<PhysicsBody2D>) {
         owner.hide();
         owner.emit_signal("hit", &[]);
@@ -102,7 +102,7 @@ impl Player {
         collision_shape.set_deferred("disabled", true);
     }
 
-    #[godot]
+    #[method]
     pub fn start(&self, #[base] owner: &Area2D, pos: Vector2) {
         owner.set_global_position(pos);
         owner.show();
